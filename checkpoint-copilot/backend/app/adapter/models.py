@@ -5,6 +5,7 @@ analysis layer (pure logic) and the API layer (HTTP responses).
 """
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any, Literal
 
@@ -31,17 +32,14 @@ def looks_redacted(value: Any) -> bool:
     text = str(value).strip().lower()
     if not text:
         return False
-    redaction_markers = (
-        "[redacted]",
-        "<redacted>",
-        "(redacted)",
-        "redacted",
-        "[sensitive]",
-        "<sensitive>",
-        "[omitted]",
-        "<omitted>",
+    if text in {"redacted", "sensitive", "omitted"}:
+        return True
+    return bool(
+        re.search(
+            r"(\[(redacted|sensitive|omitted)\]|<(redacted|sensitive|omitted)>|\((redacted|sensitive|omitted)\))",
+            text,
+        )
     )
-    return any(marker in text for marker in redaction_markers)
 
 
 class TranscriptEntry(BaseModel):

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from app.adapter.models import Session, TranscriptEntry
+from app.adapter.models import Session, TranscriptEntry, looks_redacted
 from app.analysis.handoff_readiness import assess_handoff_readiness
 from app.analysis.handoff_generator import generate_handoff
 from app.analysis.intent_vs_impl import compare_intent_vs_impl
@@ -134,3 +134,7 @@ class TestInsights:
         assert any("limited" in item.lower() or "redacted" in item.lower() for item in insights.handoff_suggestions)
         assert "## Context Completeness" in handoff.handoff_summary
         assert "Context completeness: redacted" in handoff.resume_prompt
+
+    def test_redaction_detector_does_not_flag_normal_prose(self):
+        assert looks_redacted("[REDACTED]")
+        assert not looks_redacted("Add redacted checkpoint fixture coverage")
