@@ -149,7 +149,9 @@ class CliCheckpointReader:
         started = self._parse_timestamp(raw.get("started_at"))
         last_active = self._parse_timestamp(raw.get("last_active"))
         status = raw.get("status", "unknown")
-        if status not in ("active", "ended"):
+        if status in ("idle", "stopped"):
+            status = "ended"
+        elif status not in ("active", "ended"):
             status = "unknown"
 
         return Session(

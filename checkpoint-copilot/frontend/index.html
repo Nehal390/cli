@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Checkpoint Copilot</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Entire Checkpoints</p>
+          <h1>Checkpoint Copilot</h1>
+        </div>
+        <div class="toolbar" aria-label="Dashboard controls">
+          <label class="api-field">
+            <span>API</span>
+            <input id="apiBase" type="url" inputmode="url" autocomplete="off" />
+          </label>
+          <button id="refresh" type="button">Refresh</button>
+        </div>
+      </header>
+
+      <section id="status" class="status" role="status"></section>
+
+      <section class="metrics" aria-label="Dashboard summary">
+        <article class="metric">
+          <span>Total</span>
+          <strong id="totalSessions">0</strong>
+        </article>
+        <article class="metric">
+          <span>Active</span>
+          <strong id="activeSessions">0</strong>
+        </article>
+        <article class="metric">
+          <span>Ready</span>
+          <strong id="readySessions">0</strong>
+        </article>
+        <article class="metric">
+          <span>Needs Review</span>
+          <strong id="needsReview">0</strong>
+        </article>
+      </section>
+
+      <section class="layout">
+        <aside class="sidebar" aria-label="Sessions">
+          <div class="filters">
+            <select id="statusFilter" aria-label="Filter by status">
+              <option value="all">All statuses</option>
+              <option value="active">Active</option>
+              <option value="ended">Ended</option>
+              <option value="unknown">Unknown</option>
+            </select>
+            <select id="riskFilter" aria-label="Filter by risk">
+              <option value="all">All risks</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+          <div id="sessionList" class="session-list"></div>
+        </aside>
+
+        <section class="detail" aria-label="Session detail">
+          <div id="emptyState" class="empty">
+            <h2>No session selected</h2>
+            <p>Load dashboard data, then choose a session to inspect risk, handoff state, and checkpoints.</p>
+          </div>
+
+          <article id="sessionDetail" class="detail-panel hidden">
+            <div class="detail-header">
+              <div>
+                <p id="sessionMeta" class="eyebrow"></p>
+                <h2 id="sessionTitle"></h2>
+              </div>
+              <span id="riskBadge" class="badge"></span>
+            </div>
+
+            <div class="score-grid">
+              <div>
+                <span>Risk score</span>
+                <meter id="riskMeter" min="0" max="1" value="0"></meter>
+              </div>
+              <div>
+                <span>Intent alignment</span>
+                <meter id="intentMeter" min="0" max="1" value="0"></meter>
+              </div>
+            </div>
+
+            <section>
+              <h3>Handoff</h3>
+              <p id="handoffSummary"></p>
+              <div class="columns">
+                <div>
+                  <h4>Blockers</h4>
+                  <ul id="blockers"></ul>
+                </div>
+                <div>
+                  <h4>Suggestions</h4>
+                  <ul id="suggestions"></ul>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3>Work Signals</h3>
+              <div class="signals">
+                <span id="checkpointCount"></span>
+                <span id="fileCount"></span>
+                <span id="todoCount"></span>
+              </div>
+              <p id="intentSummary" class="summary-text"></p>
+            </section>
+
+            <section>
+              <h3>Checkpoints</h3>
+              <div id="checkpointList" class="checkpoint-list"></div>
+            </section>
+          </article>
+        </section>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

@@ -1,6 +1,6 @@
 # Checkpoint Copilot — Backend
 
-FastAPI service that reads Entire Checkpoint data from disk and exposes it as a
+FastAPI service that reads Entire Checkpoint data through the `entire` CLI and exposes it as a
 REST API for the dashboard.
 
 ## Setup
@@ -22,16 +22,18 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 OpenAPI docs at <http://localhost:8000/docs>.
+Dashboard UI at <http://localhost:8000/dashboard>.
 
 ## Architecture
 
-The adapter layer (`app/adapter/`) is the only code that touches the
-filesystem. Everything above it is pure logic on parsed data.
+The adapter layer (`app/adapter/`) is the only code that touches checkpoint data
+sources. The default app reader shells out to `entire`; everything above it is
+pure logic on parsed data.
 
 ```
 app/
-├── adapter/      ← reads .entire/, git refs (NO repo imports)
-├── analysis/     ← pure logic: risk, intent-vs-impl, handoff
-├── api/          ← FastAPI routes
-└── main.py       ← app entrypoint
+├── adapter/      <- reads through `entire` CLI (NO repo imports)
+├── analysis/     <- pure logic: risk, intent-vs-impl, handoff
+├── api/          <- FastAPI routes
+└── main.py       <- app entrypoint
 ```

@@ -6,7 +6,7 @@ from pathlib import Path
 # Add the app directory to path so we can run without a package install
 sys.path.insert(0, str(Path(__file__).parent / "app"))
 
-from app.adapter import CheckpointReader
+from app.adapter import CliCheckpointReader
 from app.analysis.insights import generate_insights
 
 
@@ -17,7 +17,7 @@ def main():
     print(f"Repo: {repo_path}")
     print()
 
-    reader = CheckpointReader(repo_path)
+    reader = CliCheckpointReader(repo_path)
 
     # List sessions
     sessions = reader.list_sessions()
@@ -28,9 +28,11 @@ def main():
         print("No sessions found.")
         return
 
-    # Show the first session
-    s = sessions[0]
-    print(f"--- Session 1 of {len(sessions)} ---")
+    # Show a session with checkpoints when available, so the demo exercises the
+    # checkpoint parsing path as well as session metadata.
+    s = next((session for session in sessions if session.checkpoints), sessions[0])
+    session_number = sessions.index(s) + 1
+    print(f"--- Session {session_number} of {len(sessions)} ---")
     print(f"ID:          {s.id}")
     print(f"Status:      {s.status}")
     print(f"Agent:       {s.agent_type or '(unknown)'}")
