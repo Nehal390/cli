@@ -29,6 +29,11 @@ def assess_handoff_readiness(session: Session) -> HandoffReadiness:
     blockers: list[str] = []
     suggestions: list[str] = []
 
+    if not session.context_complete:
+        suggestions.append(
+            f"Context is {session.context_status}; treat this as a limited assessment, not a complete handoff verdict"
+        )
+
     # Check 1: Session must be ended (not still active)
     if session.status == "active":
         blockers.append("Session is still active")
@@ -37,7 +42,9 @@ def assess_handoff_readiness(session: Session) -> HandoffReadiness:
 
     # Check 2: Intent vs implementation alignment
     intent_result = compare_intent_vs_impl(session)
-    if intent_result.alignment_score < 0.2:
+    if not intent_result.context_complete:
+        suggestions.extend(intent_result.context_warnings or [])
+    elif intent_result.alignment_score < 0.2:
         blockers.append(
             f"Low intent alignment ({intent_result.alignment_score:.0%}) — "
             f"implementation may not match user request"
@@ -53,6 +60,8 @@ def assess_handoff_readiness(session: Session) -> HandoffReadiness:
 
     # Check 3: Unfinished work
     unfinished = detect_unfinished_work(session)
+    if not unfinished.context_complete:
+        suggestions.extend(unfinished.context_warnings or [])
     if unfinished.todos:
         blockers.append(f"{len(unfinished.todos)} TODO/FIXME comments remain")
     if unfinished.retries:
@@ -78,6 +87,10 @@ def assess_handoff_readiness(session: Session) -> HandoffReadiness:
 
     # Compute confidence based on data quality
     confidence = 0.5
+    if session.context_complete:
+        confidence += 0.1
+    else:
+        confidence -= 0.15
     if session.transcript:
         confidence += 0.2
     if session.checkpoints:
@@ -87,14 +100,16 @@ def assess_handoff_readiness(session: Session) -> HandoffReadiness:
     if session.end_time:
         confidence += 0.05
 
-    confidence = min(1.0, confidence)
+    confidence = max(0.0, min(1.0, confidence))
 
     # Ready if no blockers
     ready = len(blockers) == 0
 
     # Build summary
     if ready:
-        if not suggestions:
+        if not session.context_complete:
+            summary = f"Limited context: no blockers detected, but {len(suggestions)} warning(s) require review."
+        elif not suggestions:
             summary = "Ready for handoff. All clear."
         else:
             summary = f"Ready, with {len(suggestions)} suggestion(s) for improvement."
@@ -105,6 +120,6 @@ def assess_handoff_readiness(session: Session) -> HandoffReadiness:
         ready=ready,
         confidence=confidence,
         blockers=blockers,
-        suggestions=suggestions,
+        suggestions=list(dict.fromkeys(suggestions)),
         summary=summary,
     )

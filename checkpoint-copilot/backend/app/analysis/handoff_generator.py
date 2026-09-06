@@ -17,6 +17,9 @@ class GeneratedHandoff:
     session_id: str
     handoff_summary: str
     resume_prompt: str
+    context_complete: bool
+    context_status: str
+    context_warnings: list[str]
 
 
 def generate_handoff(session: Session) -> GeneratedHandoff:
@@ -29,6 +32,7 @@ def generate_handoff(session: Session) -> GeneratedHandoff:
     done = _done_lines(session)
     pending = _pending_lines(intent.gaps, handoff.blockers, handoff.suggestions, unfinished.partial)
     risks = _risk_lines(risk)
+    context = _context_lines(session)
 
     summary = "\n".join(
         [
@@ -37,6 +41,9 @@ def generate_handoff(session: Session) -> GeneratedHandoff:
             f"Session: {session.id}",
             f"Status: {session.status}",
             f"Agent: {session.agent_type or 'unknown'}",
+            "",
+            "## Context Completeness",
+            *_bullet_lines(context),
             "",
             "## Intent",
             intent.intent or session.first_user_prompt or session.description or "No explicit intent captured.",
@@ -59,6 +66,10 @@ def generate_handoff(session: Session) -> GeneratedHandoff:
             f"Session ID: {session.id}",
             f"Session status: {session.status}",
             f"Previous agent: {session.agent_type or 'unknown'}",
+            f"Context completeness: {session.context_status}",
+            "",
+            "Context warnings:",
+            *_bullet_lines(context),
             "",
             "Original intent:",
             intent.intent or session.first_user_prompt or session.description or "No explicit intent captured.",
@@ -72,7 +83,7 @@ def generate_handoff(session: Session) -> GeneratedHandoff:
             "Risk context:",
             *_bullet_lines(risks),
             "",
-            "Use the existing repository state and checkpoint history as source of truth. Do not rebuild working pieces unless new evidence shows they are broken.",
+            "Use the existing repository state and checkpoint history as source of truth. Do not present limited or redacted context as complete. Do not rebuild working pieces unless new evidence shows they are broken.",
         ]
     )
 
@@ -80,7 +91,21 @@ def generate_handoff(session: Session) -> GeneratedHandoff:
         session_id=session.id,
         handoff_summary=summary,
         resume_prompt=resume_prompt,
+        context_complete=session.context_complete,
+        context_status=session.context_status,
+        context_warnings=list(dict.fromkeys(session.context_warnings)),
     )
+
+
+def _context_lines(session: Session) -> list[str]:
+    status = "complete" if session.context_complete else session.context_status
+    lines = [f"Context status: {status}"]
+    if session.context_complete:
+        lines.append("Checkpoint prompt, transcript, and file context are available to the current adapter.")
+    else:
+        lines.extend(session.context_warnings)
+        lines.append("Any conclusions based on transcript-only details should be treated as limited.")
+    return list(dict.fromkeys(lines))
 
 
 def _done_lines(session: Session) -> list[str]:

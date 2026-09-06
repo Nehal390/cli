@@ -6,6 +6,7 @@ import pytest
 
 from app.adapter.models import Session, TranscriptEntry
 from app.analysis.handoff_readiness import assess_handoff_readiness
+from app.analysis.handoff_generator import generate_handoff
 from app.analysis.intent_vs_impl import compare_intent_vs_impl
 from app.analysis.risk_scorer import compute_risk_score, RiskLevel
 from app.analysis.unfinished_work import detect_unfinished_work
@@ -115,3 +116,21 @@ class TestInsights:
         assert result.total_sessions == 0
         assert result.sessions == []
 
+    def test_redacted_context_is_labeled_as_limited(self):
+        fixture_path = Path(__file__).parent / "fixtures" / "redacted_session.json"
+        session = Session(**json.loads(fixture_path.read_text()))
+
+        intent = compare_intent_vs_impl(session)
+        insights = generate_insights([session]).sessions[0]
+        handoff = generate_handoff(session)
+
+        assert intent.context_complete is False
+        assert intent.context_status == "redacted"
+        assert intent.gaps == []
+        assert "Unknown" in insights.intent_summary
+        assert insights.context_complete is False
+        assert insights.context_status == "redacted"
+        assert insights.context_warnings
+        assert any("limited" in item.lower() or "redacted" in item.lower() for item in insights.handoff_suggestions)
+        assert "## Context Completeness" in handoff.handoff_summary
+        assert "Context completeness: redacted" in handoff.resume_prompt

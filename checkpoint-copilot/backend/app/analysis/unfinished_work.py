@@ -22,6 +22,9 @@ class UnfinishedWorkResult:
     abandoned: list[str]  # Files that were started but not committed
     partial: list[str]  # Functions/methods that may be incomplete
     confidence: float  # 0.0–1.0: confidence that work is incomplete
+    context_complete: bool = True
+    context_status: str = "complete"
+    context_warnings: list[str] | None = None
 
 
 def detect_todos(transcript_text: str) -> list[str]:
@@ -92,6 +95,12 @@ def detect_partial_impls(transcript) -> list[str]:
 
 def detect_unfinished_work(session: Session) -> UnfinishedWorkResult:
     """Analyze a session for signs of incomplete work."""
+    context_warnings = list(session.context_warnings)
+    if not session.transcript and not session.context_complete:
+        context_warnings.append(
+            "Transcript is unavailable or redacted; TODOs, retries, and partial edits may be unknown."
+        )
+
     # Collect all text content from transcript
     transcript_text = ""
     for entry in session.transcript:
@@ -138,4 +147,7 @@ def detect_unfinished_work(session: Session) -> UnfinishedWorkResult:
         abandoned=abandoned,
         partial=partial,
         confidence=confidence,
+        context_complete=session.context_complete,
+        context_status=session.context_status,
+        context_warnings=list(dict.fromkeys(context_warnings)),
     )

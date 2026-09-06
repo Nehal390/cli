@@ -25,6 +25,10 @@ const elements = {
   sessionDetail: document.querySelector("#sessionDetail"),
   sessionMeta: document.querySelector("#sessionMeta"),
   sessionTitle: document.querySelector("#sessionTitle"),
+  contextBadge: document.querySelector("#contextBadge"),
+  contextPanel: document.querySelector("#contextPanel"),
+  contextSummary: document.querySelector("#contextSummary"),
+  contextWarnings: document.querySelector("#contextWarnings"),
   riskBadge: document.querySelector("#riskBadge"),
   riskMeter: document.querySelector("#riskMeter"),
   intentMeter: document.querySelector("#intentMeter"),
@@ -191,7 +195,13 @@ function renderSessions() {
     const badge = document.createElement("span");
     badge.className = `badge risk-${session.risk_level}`;
     badge.textContent = session.risk_level;
-    row.append(title, badge);
+    const contextBadge = document.createElement("span");
+    contextBadge.className = `badge context-${session.context_status || "complete"}`;
+    contextBadge.textContent = contextLabel(session);
+    const badges = document.createElement("span");
+    badges.className = "session-badges";
+    badges.append(contextBadge, badge);
+    row.append(title, badges);
 
     const subtitle = document.createElement("div");
     subtitle.className = "session-subtitle";
@@ -220,11 +230,14 @@ function renderDetail() {
 
   elements.sessionMeta.textContent = `${session.status} · ${session.agent_type || "unknown agent"} · ${formatDate(session.start_time)}`;
   elements.sessionTitle.textContent = session.description || session.first_prompt || compactId(session.session_id);
+  elements.contextBadge.className = `badge context-badge context-${session.context_status || "complete"}`;
+  elements.contextBadge.textContent = contextLabel(session);
   elements.riskBadge.className = `badge risk-${session.risk_level}`;
   elements.riskBadge.textContent = session.risk_level;
   elements.riskMeter.value = clampScore(session.risk_score);
   elements.intentMeter.value = clampScore(session.intent_alignment);
   elements.handoffSummary.textContent = session.handoff_summary || "No handoff summary available.";
+  renderContext(session);
 
   renderList(elements.blockers, session.handoff_blockers, "No blockers detected.");
   renderList(elements.suggestions, session.handoff_suggestions, "No suggestions.");
@@ -311,12 +324,32 @@ function renderCheckpointList(session) {
     const meta = document.createElement("span");
     meta.className = "checkpoint-meta";
     meta.textContent = formatDate(checkpoint.timestamp);
+    const context = document.createElement("span");
+    context.className = `badge context-${checkpoint.context_status || "complete"}`;
+    context.textContent = contextLabel(checkpoint);
+    const metaRow = document.createElement("div");
+    metaRow.className = "checkpoint-meta-row";
+    metaRow.append(meta, context);
     const commit = document.createElement("p");
     commit.textContent = compactId(checkpoint.id);
 
-    item.append(meta, title, commit);
+    item.append(metaRow, title, commit);
     elements.checkpointList.append(item);
   });
+}
+
+function renderContext(session) {
+  const status = session.context_status || "complete";
+  const complete = Boolean(session.context_complete);
+  const warnings = session.context_warnings || [];
+  elements.contextSummary.textContent = complete
+    ? "Complete checkpoint context is available for this session."
+    : `Context is ${status}; analysis uses available checkpoint fields and may miss redacted or unavailable details.`;
+  renderList(
+    elements.contextWarnings,
+    warnings,
+    complete ? "No context warnings." : "No additional context warnings returned."
+  );
 }
 
 function filteredSessions() {
@@ -357,6 +390,20 @@ function setStatus(text, isError = false) {
 
 function setText(element, value) {
   element.textContent = String(value);
+}
+
+function contextLabel(item) {
+  const status = item.context_status || "complete";
+  if (item.context_complete || status === "complete") {
+    return "Complete";
+  }
+  if (status === "redacted") {
+    return "Limited/redacted";
+  }
+  if (status === "unavailable") {
+    return "Unavailable";
+  }
+  return "Limited";
 }
 
 function normalizeApiBase(value) {

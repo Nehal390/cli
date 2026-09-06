@@ -296,6 +296,16 @@ button.secondary:hover {
   gap: 12px;
 }
 
+.session-badges,
+.badge-stack,
+.checkpoint-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .session-title {
   display: -webkit-box;
   overflow: hidden;
@@ -377,6 +387,25 @@ button.secondary:hover {
   white-space: nowrap;
 }
 
+.context-complete {
+  border: 1px solid #35533f;
+  background: #132019;
+  color: #9fe0b4;
+}
+
+.context-limited,
+.context-unavailable {
+  border: 1px solid #5d451c;
+  background: #21180b;
+  color: #f0c46d;
+}
+
+.context-redacted {
+  border: 1px solid var(--accent);
+  background: #281112;
+  color: #ffb4b7;
+}
+
 .risk-low {
   background: var(--good);
   color: #06130d;
@@ -433,6 +462,17 @@ meter::-webkit-meter-even-less-good-value {
 
 section + section {
   margin-top: 28px;
+}
+
+.context-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #101010;
+  padding: 16px;
+}
+
+.context-panel .summary-text {
+  margin-top: 0;
 }
 
 ul {

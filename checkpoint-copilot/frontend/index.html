@@ -80,7 +80,10 @@
                 <p id="sessionMeta" class="eyebrow"></p>
                 <h2 id="sessionTitle"></h2>
               </div>
-              <span id="riskBadge" class="badge"></span>
+              <div class="badge-stack">
+                <span id="contextBadge" class="badge context-badge"></span>
+                <span id="riskBadge" class="badge"></span>
+              </div>
             </div>
 
             <div class="score-grid">
@@ -93,6 +96,12 @@
                 <meter id="intentMeter" min="0" max="1" value="0"></meter>
               </div>
             </div>
+
+            <section id="contextPanel" class="context-panel">
+              <h3>Context</h3>
+              <p id="contextSummary" class="summary-text"></p>
+              <ul id="contextWarnings"></ul>
+            </section>
 
             <section>
               <h3>Handoff</h3>

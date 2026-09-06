@@ -10,6 +10,39 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+ContextStatus = Literal["complete", "limited", "redacted", "unavailable"]
+
+
+def merge_context_status(statuses: list[ContextStatus]) -> ContextStatus:
+    """Return the most restrictive context status from a group of inputs."""
+    if "unavailable" in statuses:
+        return "unavailable"
+    if "redacted" in statuses:
+        return "redacted"
+    if "limited" in statuses:
+        return "limited"
+    return "complete"
+
+
+def looks_redacted(value: Any) -> bool:
+    """Detect common redaction sentinels without assuming one upstream format."""
+    if value is None:
+        return False
+    text = str(value).strip().lower()
+    if not text:
+        return False
+    redaction_markers = (
+        "[redacted]",
+        "<redacted>",
+        "(redacted)",
+        "redacted",
+        "[sensitive]",
+        "<sensitive>",
+        "[omitted]",
+        "<omitted>",
+    )
+    return any(marker in text for marker in redaction_markers)
+
 
 class TranscriptEntry(BaseModel):
     """One line of a session transcript (full.jsonl).
@@ -45,6 +78,9 @@ class SessionCheckpoint(BaseModel):
     files_deleted: list[str] = Field(default_factory=list)
     is_task_checkpoint: bool = False
     metadata_dir: str = ""
+    context_complete: bool = True
+    context_status: ContextStatus = "complete"
+    context_warnings: list[str] = Field(default_factory=list)
 
 
 class Session(BaseModel):
@@ -62,6 +98,9 @@ class Session(BaseModel):
     checkpoints: list[SessionCheckpoint] = Field(default_factory=list)
     transcript: list[TranscriptEntry] = Field(default_factory=list)
     metadata_dir: str = ""
+    context_complete: bool = True
+    context_status: ContextStatus = "complete"
+    context_warnings: list[str] = Field(default_factory=list)
 
     @property
     def total_checkpoints(self) -> int:
@@ -102,6 +141,9 @@ class Checkpoint(BaseModel):
     commit_hash: str | None = None
     files_changed: list[str] = Field(default_factory=list)
     session: Session | None = None
+    context_complete: bool = True
+    context_status: ContextStatus = "complete"
+    context_warnings: list[str] = Field(default_factory=list)
 
     @property
     def user_intent(self) -> str:

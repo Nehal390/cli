@@ -21,9 +21,12 @@ from typing import Any
 
 from app.adapter.models import (
     Checkpoint,
+    ContextStatus,
     Session,
     SessionCheckpoint,
     TranscriptEntry,
+    looks_redacted,
+    merge_context_status,
 )
 
 
@@ -51,6 +54,7 @@ class CliCheckpointReader:
             if session:
                 # Enrich with checkpoints
                 session.checkpoints = self._get_checkpoints_for_session(session.id)
+                self._refresh_session_context(session)
                 sessions.append(session)
         return sessions
 
@@ -154,14 +158,30 @@ class CliCheckpointReader:
         elif status not in ("active", "ended"):
             status = "unknown"
 
+        description = raw.get("last_prompt", "")
+        context_statuses: list[ContextStatus] = ["limited"]
+        context_warnings = [
+            "Transcript content is unavailable from Entire CLI list data; analysis uses session metadata and checkpoint messages.",
+        ]
+        if not description:
+            context_warnings.append("Session prompt/description is unavailable.")
+        elif looks_redacted(description):
+            context_statuses.append("redacted")
+            context_warnings.append("Session prompt/description appears redacted.")
+
+        context_status = merge_context_status(context_statuses)
+
         return Session(
             id=session_id,
-            description=raw.get("last_prompt", ""),
+            description=description,
             start_time=started,
             end_time=last_active if status == "ended" else None,
             agent_type=raw.get("agent", ""),
             status=status,
             metadata_dir=f".entire/metadata/{session_id}",
+            context_complete=False,
+            context_status=context_status,
+            context_warnings=context_warnings,
         )
 
     def _get_checkpoints_for_session(self, session_id: str) -> list[SessionCheckpoint]:
@@ -181,6 +201,9 @@ class CliCheckpointReader:
                         files_changed=cp.files_changed,
                         files_added=[],
                         files_deleted=[],
+                        context_complete=cp.context_complete,
+                        context_status=cp.context_status,
+                        context_warnings=cp.context_warnings,
                     )
                 )
 
@@ -197,6 +220,9 @@ class CliCheckpointReader:
                             message=cp.message,
                             commit_hash=cp.commit_hash,
                             files_changed=cp.files_changed,
+                            context_complete=cp.context_complete,
+                            context_status=cp.context_status,
+                            context_warnings=cp.context_warnings,
                         )
                     )
 
@@ -204,25 +230,61 @@ class CliCheckpointReader:
 
     def _parse_committed_checkpoint(self, raw: dict[str, Any]) -> Checkpoint:
         """Build a Checkpoint from `entire checkpoint list --json` output."""
+        message = raw.get("message", "")
+        context_status, context_warnings = self._checkpoint_context(message)
         return Checkpoint(
             id=raw.get("checkpoint_id", ""),
             session_id=raw.get("session_id", ""),
             timestamp=self._parse_timestamp(raw.get("date")),
-            message=raw.get("message", ""),
+            message=message,
             commit_hash=raw.get("checkpoint_id", ""),
             files_changed=[],  # Not in list output; would need explain for details
+            context_complete=False,
+            context_status=context_status,
+            context_warnings=context_warnings,
         )
 
     def _parse_pending_checkpoint(self, raw: dict[str, Any]) -> Checkpoint:
         """Build a Checkpoint from `entire checkpoint list --pending --json` output."""
+        message = raw.get("message", "")
+        context_status, context_warnings = self._checkpoint_context(message)
         return Checkpoint(
             id=raw.get("id", ""),
             session_id=raw.get("session_id", ""),
             timestamp=self._parse_timestamp(raw.get("date")),
-            message=raw.get("message", ""),
+            message=message,
             commit_hash=raw.get("id", "") if not raw.get("is_logs_only") else None,
             files_changed=[],
+            context_complete=False,
+            context_status=context_status,
+            context_warnings=context_warnings,
         )
+
+    def _checkpoint_context(self, message: str) -> tuple[ContextStatus, list[str]]:
+        """Context quality for checkpoint-list rows."""
+        statuses: list[ContextStatus] = ["limited"]
+        warnings = [
+            "Changed file list is unavailable from Entire checkpoint list data.",
+        ]
+        if not message:
+            warnings.append("Checkpoint message is unavailable.")
+        elif looks_redacted(message):
+            statuses.append("redacted")
+            warnings.append("Checkpoint message appears redacted.")
+        return merge_context_status(statuses), warnings
+
+    def _refresh_session_context(self, session: Session) -> None:
+        """Fold child checkpoint quality into the session-level context quality."""
+        statuses: list[ContextStatus] = [session.context_status]
+        warnings = list(session.context_warnings)
+
+        for checkpoint in session.checkpoints:
+            statuses.append(checkpoint.context_status)
+            warnings.extend(checkpoint.context_warnings)
+
+        session.context_status = merge_context_status(statuses)
+        session.context_complete = session.context_status == "complete"
+        session.context_warnings = list(dict.fromkeys(warnings))
 
     def _parse_timestamp(self, value: Any) -> datetime | None:
         """Parse a timestamp from CLI output (ISO 8601 string or epoch)."""

@@ -45,6 +45,9 @@ class SessionInsights:
 
     files_changed: list[str]
     checkpoint_count: int
+    context_complete: bool
+    context_status: str
+    context_warnings: list[str]
 
     # Raw data for drill-down (kept small)
     first_prompt: str  # Truncated
@@ -137,6 +140,9 @@ def _analyze_session(session: Session) -> SessionInsights:
         handoff_summary=handoff.summary,
         files_changed=list(session.all_files_changed)[:50],
         checkpoint_count=session.total_checkpoints,
+        context_complete=session.context_complete,
+        context_status=session.context_status,
+        context_warnings=list(dict.fromkeys(session.context_warnings)),
         first_prompt=session.first_user_prompt[:500],
         key_tool_calls=tool_names,
     )
@@ -153,4 +159,6 @@ def _summarize_unfinished(unfinished) -> list[str]:
         lines.append(f"{len(unfinished.abandoned)} file(s) started but not committed")
     if unfinished.partial:
         lines.append(f"Partial implementations: {', '.join(unfinished.partial[:2])}")
+    if not unfinished.context_complete:
+        lines.append("Unknown transcript-only signals may exist because context is limited.")
     return lines

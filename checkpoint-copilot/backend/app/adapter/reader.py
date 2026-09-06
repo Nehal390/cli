@@ -12,9 +12,12 @@ from typing import Any
 
 from app.adapter.models import (
     Checkpoint,
+    ContextStatus,
     Session,
     SessionCheckpoint,
     TranscriptEntry,
+    looks_redacted,
+    merge_context_status,
 )
 from app.adapter.paths import (
     CHECKPOINTS_REF,
@@ -78,6 +81,13 @@ class CheckpointReader:
         transcript_path = meta_dir / FULL_TRANSCRIPT_FILENAME
         if transcript_path.is_file():
             session.transcript = self._read_transcript(transcript_path)
+        else:
+            session.context_status = merge_context_status([session.context_status, "limited"])
+            session.context_warnings.append(
+                "Transcript content is unavailable; analysis uses metadata and checkpoint history."
+            )
+
+        self._refresh_session_context(session)
 
         return session
 
@@ -117,6 +127,9 @@ class CheckpointReader:
                     message=message,
                     commit_hash=commit.hexsha,
                     files_changed=files,
+                    context_complete=not looks_redacted(message),
+                    context_status="redacted" if looks_redacted(message) else "complete",
+                    context_warnings=["Checkpoint message appears redacted."] if looks_redacted(message) else [],
                 )
                 checkpoints.append(cp)
 
@@ -220,6 +233,17 @@ class CheckpointReader:
         elif end_time is not None:
             status = "ended"
 
+        context_statuses: list[ContextStatus] = []
+        context_warnings: list[str] = []
+        if not description:
+            context_statuses.append("limited")
+            context_warnings.append("Session prompt/description is unavailable.")
+        elif looks_redacted(description):
+            context_statuses.append("redacted")
+            context_warnings.append("Session prompt/description appears redacted.")
+
+        context_status = merge_context_status(context_statuses)
+
         return Session(
             id=session_id,
             description=description,
@@ -228,6 +252,9 @@ class CheckpointReader:
             agent_type=agent_type,
             status=status,
             metadata_dir=str(meta_dir),
+            context_complete=context_status == "complete",
+            context_status=context_status,
+            context_warnings=context_warnings,
         )
 
     def _parse_checkpoints(
@@ -242,21 +269,58 @@ class CheckpointReader:
 
         for i, cp_data in enumerate(checkpoints_data):
             if isinstance(cp_data, dict):
+                message = cp_data.get("message", "")
+                files_changed = cp_data.get("files_changed", [])
+                files_added = cp_data.get("files_added", [])
+                files_deleted = cp_data.get("files_deleted", [])
+                context_statuses: list[ContextStatus] = []
+                context_warnings: list[str] = []
+                if not message:
+                    context_statuses.append("limited")
+                    context_warnings.append("Checkpoint message is unavailable.")
+                elif looks_redacted(message):
+                    context_statuses.append("redacted")
+                    context_warnings.append("Checkpoint message appears redacted.")
+                if not (files_changed or files_added or files_deleted):
+                    context_statuses.append("limited")
+                    context_warnings.append("Changed file list is unavailable for this checkpoint.")
+                context_status = merge_context_status(context_statuses)
                 cp = SessionCheckpoint(
                     id=cp_data.get("id", f"{session_id}-{i}"),
                     session_id=session_id,
                     timestamp=self._parse_timestamp(cp_data.get("timestamp")),
-                    message=cp_data.get("message", ""),
+                    message=message,
                     commit_hash=cp_data.get("commit_hash"),
-                    files_changed=cp_data.get("files_changed", []),
-                    files_added=cp_data.get("files_added", []),
-                    files_deleted=cp_data.get("files_deleted", []),
+                    files_changed=files_changed,
+                    files_added=files_added,
+                    files_deleted=files_deleted,
                     is_task_checkpoint=cp_data.get("is_task_checkpoint", False),
                     metadata_dir=cp_data.get("metadata_dir", ""),
+                    context_complete=context_status == "complete",
+                    context_status=context_status,
+                    context_warnings=context_warnings,
                 )
                 checkpoints.append(cp)
 
         return checkpoints
+
+    def _refresh_session_context(self, session: Session) -> None:
+        """Fold transcript and checkpoint availability into session context status."""
+        statuses: list[ContextStatus] = [session.context_status]
+        warnings = list(session.context_warnings)
+
+        if session.transcript:
+            if any(looks_redacted(entry.content) or looks_redacted(entry.raw) for entry in session.transcript):
+                statuses.append("redacted")
+                warnings.append("Transcript content appears redacted.")
+
+        for checkpoint in session.checkpoints:
+            statuses.append(checkpoint.context_status)
+            warnings.extend(checkpoint.context_warnings)
+
+        session.context_status = merge_context_status(statuses)
+        session.context_complete = session.context_status == "complete"
+        session.context_warnings = list(dict.fromkeys(warnings))
 
     def _parse_timestamp(self, value: Any) -> datetime | None:
         """Parse a timestamp from various formats."""

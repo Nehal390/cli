@@ -37,6 +37,14 @@ def compute_risk_score(session: Session) -> RiskScore:
     factors: list[RiskFactor] = []
     total = 0.0
 
+    if not session.context_complete:
+        factors.append(RiskFactor(
+            name="limited_context",
+            score=0.05,
+            description=f"Checkpoint context is {session.context_status}; risk analysis may miss transcript-only signals",
+        ))
+        total += 0.05
+
     # Factor 1: Active session (may be unfinished)
     if session.status == "active":
         factors.append(RiskFactor(
@@ -134,6 +142,11 @@ def compute_risk_score(session: Session) -> RiskScore:
     else:
         level = RiskLevel.LOW
         recommendation = "Low risk: standard review"
+
+    if not session.context_complete:
+        recommendation = (
+            f"{recommendation}. Context is {session.context_status}; verify against available checkpoint history."
+        )
 
     return RiskScore(
         overall=overall,

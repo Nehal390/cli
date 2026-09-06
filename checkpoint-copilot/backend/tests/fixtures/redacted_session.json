@@ -1,0 +1,27 @@
+{
+  "id": "redacted-session-1",
+  "description": "[REDACTED]",
+  "agent_type": "codex",
+  "status": "ended",
+  "context_complete": false,
+  "context_status": "redacted",
+  "context_warnings": [
+    "Session prompt/description appears redacted.",
+    "Transcript content is unavailable; analysis uses checkpoint messages and session metadata."
+  ],
+  "transcript": [],
+  "checkpoints": [
+    {
+      "id": "cp-redacted-1",
+      "session_id": "redacted-session-1",
+      "message": "[REDACTED]",
+      "files_changed": [],
+      "context_complete": false,
+      "context_status": "redacted",
+      "context_warnings": [
+        "Checkpoint message appears redacted.",
+        "Changed file list is unavailable for this checkpoint."
+      ]
+    }
+  ]
+}

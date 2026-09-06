@@ -14,6 +14,9 @@ class HandoffResponse(BaseModel):
 
     handoff_summary: str
     resume_prompt: str
+    context_complete: bool
+    context_status: str
+    context_warnings: list[str]
 
 
 def get_reader(request: Request) -> CheckpointReader:
@@ -65,4 +68,7 @@ def create_handoff(session_id: str, request: Request) -> HandoffResponse:
     return HandoffResponse(
         handoff_summary=handoff.handoff_summary,
         resume_prompt=handoff.resume_prompt,
+        context_complete=handoff.context_complete,
+        context_status=handoff.context_status,
+        context_warnings=handoff.context_warnings,
     )

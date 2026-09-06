@@ -5,7 +5,7 @@ agent actually changed (from checkpoint file lists and commit messages).
 """
 from dataclasses import dataclass
 
-from app.adapter.models import Session, TranscriptEntry
+from app.adapter.models import Session, TranscriptEntry, looks_redacted
 
 
 @dataclass
@@ -17,6 +17,9 @@ class IntentVsImplResult:
     alignment_score: float  # 0.0–1.0: how well they match
     gaps: list[str]  # Things asked for but not delivered
     surprises: list[str]  # Things done that weren't in the intent
+    context_complete: bool = True
+    context_status: str = "complete"
+    context_warnings: list[str] | None = None
 
 
 def extract_intent(transcript: list[TranscriptEntry]) -> str:
@@ -92,13 +95,24 @@ def compare_intent_vs_impl(session: Session) -> IntentVsImplResult:
     intent = extract_intent(session.transcript)
     if not intent:
         intent = session.description
+    if looks_redacted(intent):
+        intent = ""
 
     all_files = list(session.all_files_changed)
-    message_parts = [cp.message for cp in session.checkpoints if cp.message]
+    message_parts = [
+        cp.message
+        for cp in session.checkpoints
+        if cp.message and not looks_redacted(cp.message)
+    ]
     impl_summary = "; ".join(message_parts[:3]) if message_parts else ""
 
     gaps: list[str] = []
     surprises: list[str] = []
+    context_warnings = list(session.context_warnings)
+    if not session.context_complete:
+        context_warnings.append(
+            "Intent analysis is based on limited checkpoint context."
+        )
 
     # Simple heuristic: look for common request patterns in intent
     intent_lower = intent.lower()
@@ -117,27 +131,43 @@ def compare_intent_vs_impl(session: Session) -> IntentVsImplResult:
         expected_action = "explore"
 
     # Check alignment
-    if expected_action == "create" and not file_actions["created"]:
+    if not intent:
+        context_warnings.append("Original user intent is unknown or redacted.")
+    elif expected_action == "create" and not session.transcript:
+        context_warnings.append(
+            "Cannot verify requested file creation because transcript tool calls are unavailable."
+        )
+    elif expected_action == "create" and not file_actions["created"]:
         gaps.append("User requested creation but no files were created")
-    elif expected_action == "fix" and not all_files:
+    elif expected_action == "fix" and not all_files and session.context_complete:
         gaps.append("User requested a fix but no files were modified")
+    elif expected_action == "fix" and not all_files:
+        context_warnings.append(
+            "Cannot verify modified files because checkpoint file lists are unavailable."
+        )
 
     # Check for unexpected file changes
     unexpected_dirs = ["test", "tests", "docs", "migrations", "scripts"]
-    unexpected = [
-        f for f in all_files
-        if any(f.startswith(d + "/") for d in unexpected_dirs)
-        and f"{d}/" not in intent_lower
-    ]
-    if unexpected:
-        surprises.append(f"Modified support files not mentioned in intent: {', '.join(unexpected[:5])}")
+    if intent:
+        unexpected = [
+            f for f in all_files
+            if any(f.startswith(d + "/") for d in unexpected_dirs)
+            and f"{d}/" not in intent_lower
+        ]
+        if unexpected:
+            surprises.append(f"Modified support files not mentioned in intent: {', '.join(unexpected[:5])}")
 
     alignment = keyword_overlap(intent, impl_summary, all_files)
+    if not intent and not session.context_complete:
+        alignment = 0.5
 
     return IntentVsImplResult(
-        intent=intent[:500],  # Truncate long prompts
+        intent=(intent or "Unknown: original intent is unavailable or redacted.")[:500],
         implementation_summary=impl_summary,
         alignment_score=alignment,
         gaps=gaps,
         surprises=surprises,
+        context_complete=session.context_complete,
+        context_status=session.context_status,
+        context_warnings=list(dict.fromkeys(context_warnings)),
     )
