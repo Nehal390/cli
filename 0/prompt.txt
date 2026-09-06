@@ -61,3 +61,8 @@ Stop here. Just confirm: does the adapter successfully call
 and produce ANY normalized output, even if imperfect? Show me the current
 state of the adapter code and one example output, even partial. Don't run
 anything else — just show me what exists right now.
+
+---
+
+git add checkpoint-copilot/
+git commit -m "checkpoint-copilot: architecture, CLI-based adapter, analysis layer tests (11 passing)"
