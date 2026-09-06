@@ -1,33 +1,3 @@
-# Checkpoint Copilot
-
-## One-sentence summary
-Checkpoint Copilot turns the invisible context behind an AI-assisted coding session
-into a readable risk-and-handoff report, so a developer can review, trust, or resume
-that work without re-reading the whole transcript.
-
-## Problem, intended user, and why it matters
-When a developer uses an AI coding agent, `git diff` shows what changed but not why
-it changed, what was originally asked for, or whether the work is safe to hand off.
-Checkpoint Copilot is for any developer working with AI agents who needs to quickly
-assess: is this implementation aligned with intent, what's unfinished, how risky is
-it, and can I hand this off or resume it with confidence.
-
-## Selected Entire track and why Entire is essential
-Track 1: Build a Checkpoint-Native Developer Experience.
-Entire Checkpoint data is not optional decoration here — it is the only input the
-Analysis Engine has. Without real checkpoints (session prompts, timestamps, commit
-links, status), there is no intent to compare against, no risk to score, and no
-handoff to generate. The adapter calls the real `entire` CLI directly; nothing is
-mocked.
-
-## Architecture and main workflow
-```
-Entire Checkpoint (captured automatically via `entire enable`)
-  -> Checkpoint Adapter (CliCheckpointReader: `entire checkpoint list/explain --json`)
-  -> Analysis Engine (risk score, intent alignment, handoff readiness, work signals)
-  -> REST API (FastAPI: /api/sessions, /api/checkpoints, /api/dashboard, /api/handoff/{id})
-  -> Dashboard Frontend (dark-themed static HTML/CSS/JS)
-```
 
 ## Entire Graph findings and verification
 Ran `entire-graph search` and `entire-graph impact` against Session, Checkpoint,
