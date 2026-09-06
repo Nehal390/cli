@@ -1,0 +1,17 @@
+Continue building checkpoint-copilot in this repo. Current state:
+
+checkpoint-copilot/backend/
+  app/adapter/cli_reader.py    - CliCheckpointReader, calls `entire checkpoint list --json`
+  app/adapter/models.py        - Pydantic: Session, Checkpoint, SessionCheckpoint
+  app/analysis/                - risk, intent, unfinished, handoff, insights logic
+  app/api/routes/               - sessions, checkpoints, health endpoints
+  tests/test_analysis.py       - 11 passing tests (analysis layer only, not CLI layer)
+
+Known gaps:
+- run_adapter_demo.py has not been re-run against the new CliCheckpointReader yet
+- No `entire checkpoint explain --json` call implemented yet (only `list`)
+- files_changed is empty in parsed Checkpoint objects because list JSON doesn't include file lists
+
+First: run run_adapter_demo.py and confirm the adapter works end-to-end with real
+data. Fix only what's broken. Then move to wiring the REST API to the frontend.
+Do not rebuild anything that already works.

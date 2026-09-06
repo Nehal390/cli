@@ -1,0 +1,54 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "01M1TM08F4SNX4629WHS803CDD",
+  "session_id": "01a07535-940f-7ae3-bf52-38f7bdb55148",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-06T05:45:33.29804Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "checkpoint-copilot/backend/README.md",
+    "checkpoint-copilot/backend/app/adapter/cli_reader.py",
+    "checkpoint-copilot/backend/app/main.py",
+    "checkpoint-copilot/backend/run_adapter_demo.py",
+    "checkpoint-copilot/frontend/README.md",
+    "checkpoint-copilot/frontend/app.js",
+    "checkpoint-copilot/frontend/index.html",
+    "checkpoint-copilot/frontend/styles.css"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.5",
+  "turn_id": "1f8b52ffe115",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 70263,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1264256,
+    "output_tokens": 14407,
+    "api_call_count": 31
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-06T05:45:33.271875Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 837,
+    "human_modified": 14,
+    "human_removed": 0,
+    "total_committed": 837,
+    "total_lines_changed": 851,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 7,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "CLAUDE.md": 7
+      }
+    }
+  ]
+}
