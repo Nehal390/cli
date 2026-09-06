@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "01M1TR842CGS4V57RB26767J55",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "checkpoint-copilot/backend/app/adapter/cli_reader.py",
+    "checkpoint-copilot/backend/app/adapter/models.py",
+    "checkpoint-copilot/backend/app/adapter/reader.py",
+    "checkpoint-copilot/backend/app/analysis/handoff_generator.py",
+    "checkpoint-copilot/backend/app/analysis/handoff_readiness.py",
+    "checkpoint-copilot/backend/app/analysis/insights.py",
+    "checkpoint-copilot/backend/app/analysis/intent_vs_impl.py",
+    "checkpoint-copilot/backend/app/analysis/risk_scorer.py",
+    "checkpoint-copilot/backend/app/analysis/unfinished_work.py",
+    "checkpoint-copilot/backend/app/api/routes/checkpoints.py",
+    "checkpoint-copilot/backend/app/api/routes/sessions.py",
+    "checkpoint-copilot/backend/tests/fixtures/redacted_session.json",
+    "checkpoint-copilot/backend/tests/test_analysis.py",
+    "checkpoint-copilot/frontend/app.js",
+    "checkpoint-copilot/frontend/index.html",
+    "checkpoint-copilot/frontend/styles.css"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}
