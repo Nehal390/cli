@@ -1,0 +1,63 @@
+Inspect this repository. It's a large existing open-source project (Entire CLI).
+I need to build "Checkpoint Copilot" — a developer dashboard that uses real Entire
+Checkpoint context to assess implementation vs intent, unfinished work, risks,
+and handoff readiness — as my hackathon submission.
+
+Given the size of this codebase, recommend whether I should:
+(a) implement a small real feature/fix from an open issue in this repo, generating
+    checkpoints from that work, and build Checkpoint Copilot as a separate tool
+    that analyzes those checkpoints, or
+(b) add Checkpoint Copilot as a new self-contained folder/plugin inside this fork.
+
+Don't code yet. Give me a recommendation suited to a one-day solo build, plus
+the smallest safe first step.
+
+---
+
+Change of plan: don't fix an existing issue in this codebase. Instead, we'll build
+Checkpoint Copilot as a new, fully self-contained folder at the repo root:
+checkpoint-copilot/
+
+It must not modify or depend on any existing code in this repository. Confirm you
+understand, then propose the smallest folder structure for:
+checkpoint-copilot/
+├── backend/ (adapter, analysis engine, REST API)
+└── frontend/ (React dashboard)
+
+Do not code yet.
+
+---
+
+Yes, proceed with the backend skeleton and adapter first.
+
+---
+
+❯ Run the adapter against real checkpoint data from this repo and show me one
+  normalized checkpoint. Run any tests. Show changed files.
+
+---
+
+Stop trying to fix the pyproject.toml packaging setup. We don't need an installable
+package for a hackathon demo. Simplify:
+
+1. Remove any pyproject.toml / hatchling / build-backend complexity.
+2. Just use a plain requirements.txt for backend/app dependencies.
+3. Run the FastAPI app directly with: uvicorn app.main:app --reload
+4. Skip editable installs (-e) entirely.
+
+Get it running the simplest possible way. Then run it and confirm it starts
+without errors.
+
+---
+
+Skip checking for real .entire/metadata directly on disk — use the entire CLI
+commands instead: entire checkpoint list --json and entire checkpoint explain --json.
+Run the adapter using that CLI output as the data source.
+
+---
+
+Stop here. Just confirm: does the adapter successfully call
+"entire checkpoint list --json" and "entire checkpoint explain --json"
+and produce ANY normalized output, even if imperfect? Show me the current
+state of the adapter code and one example output, even partial. Don't run
+anything else — just show me what exists right now.

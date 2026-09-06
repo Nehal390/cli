@@ -1,0 +1,114 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "01M1TK54TJTSJ89246B7A9XPS6",
+  "session_id": "2fcacacc-48fa-4041-9156-0390aa8ef1f1",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-06T05:30:44.910316Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "save_step_count": 3,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "openrouter/free",
+  "turn_id": "18058aa8b024",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 3622153,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 6607841,
+    "output_tokens": 31534,
+    "api_call_count": 90
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 7,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "CLAUDE.md": 7
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 7,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 1997,
+      "user_lines_removed": 0,
+      "agent_lines_added": 7,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "checkpoint-copilot/backend/.gitignore": 35,
+        "checkpoint-copilot/backend/README.md": 37,
+        "checkpoint-copilot/backend/app/__init__.py": 2,
+        "checkpoint-copilot/backend/app/adapter/__init__.py": 25,
+        "checkpoint-copilot/backend/app/adapter/cli_reader.py": 249,
+        "checkpoint-copilot/backend/app/adapter/models.py": 111,
+        "checkpoint-copilot/backend/app/adapter/paths.py": 54,
+        "checkpoint-copilot/backend/app/adapter/reader.py": 324,
+        "checkpoint-copilot/backend/app/analysis/__init__.py": 17,
+        "checkpoint-copilot/backend/app/analysis/handoff_readiness.py": 110,
+        "checkpoint-copilot/backend/app/analysis/insights.py": 156,
+        "checkpoint-copilot/backend/app/analysis/intent_vs_impl.py": 143,
+        "checkpoint-copilot/backend/app/analysis/risk_scorer.py": 143,
+        "checkpoint-copilot/backend/app/analysis/unfinished_work.py": 141,
+        "checkpoint-copilot/backend/app/api/__init__.py": 1,
+        "checkpoint-copilot/backend/app/api/routes/__init__.py": 1,
+        "checkpoint-copilot/backend/app/api/routes/checkpoints.py": 38,
+        "checkpoint-copilot/backend/app/api/routes/health.py": 31,
+        "checkpoint-copilot/backend/app/api/routes/sessions.py": 44,
+        "checkpoint-copilot/backend/app/config.py": 19,
+        "checkpoint-copilot/backend/app/main.py": 56,
+        "checkpoint-copilot/backend/requirements.txt": 7,
+        "checkpoint-copilot/backend/run_adapter_demo.py": 85,
+        "checkpoint-copilot/backend/tests/__init__.py": 1,
+        "checkpoint-copilot/backend/tests/fixtures/sample_session.json": 50,
+        "checkpoint-copilot/backend/tests/test_analysis.py": 117
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 1997,
+      "user_lines_removed": 0,
+      "agent_lines_added": 7,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "checkpoint-copilot/backend/.gitignore": 35,
+        "checkpoint-copilot/backend/README.md": 37,
+        "checkpoint-copilot/backend/app/__init__.py": 2,
+        "checkpoint-copilot/backend/app/adapter/__init__.py": 25,
+        "checkpoint-copilot/backend/app/adapter/cli_reader.py": 249,
+        "checkpoint-copilot/backend/app/adapter/models.py": 111,
+        "checkpoint-copilot/backend/app/adapter/paths.py": 54,
+        "checkpoint-copilot/backend/app/adapter/reader.py": 324,
+        "checkpoint-copilot/backend/app/analysis/__init__.py": 17,
+        "checkpoint-copilot/backend/app/analysis/handoff_readiness.py": 110,
+        "checkpoint-copilot/backend/app/analysis/insights.py": 156,
+        "checkpoint-copilot/backend/app/analysis/intent_vs_impl.py": 143,
+        "checkpoint-copilot/backend/app/analysis/risk_scorer.py": 143,
+        "checkpoint-copilot/backend/app/analysis/unfinished_work.py": 141,
+        "checkpoint-copilot/backend/app/api/__init__.py": 1,
+        "checkpoint-copilot/backend/app/api/routes/__init__.py": 1,
+        "checkpoint-copilot/backend/app/api/routes/checkpoints.py": 38,
+        "checkpoint-copilot/backend/app/api/routes/health.py": 31,
+        "checkpoint-copilot/backend/app/api/routes/sessions.py": 44,
+        "checkpoint-copilot/backend/app/config.py": 19,
+        "checkpoint-copilot/backend/app/main.py": 56,
+        "checkpoint-copilot/backend/requirements.txt": 7,
+        "checkpoint-copilot/backend/run_adapter_demo.py": 85,
+        "checkpoint-copilot/backend/tests/__init__.py": 1,
+        "checkpoint-copilot/backend/tests/fixtures/sample_session.json": 50,
+        "checkpoint-copilot/backend/tests/test_analysis.py": 117
+      }
+    }
+  ]
+}
