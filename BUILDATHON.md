@@ -67,6 +67,12 @@ are always present and fully readable.
 9. All existing behavior for complete/normal checkpoints preserved unchanged.
 
 ## Checkpoint links and what each proves
+- **Live Entire.io checkpoint view (curveball response):**
+  https://entire.io/gh/Nehal390/cli/commit/ee5e0a4f67e8028a3f830eb00c8ee019ac9a59d8
+  (commit trailer: `Entire-Checkpoint: 01M1TR842CGS4V57RB26767J55`)
+- **Live Entire.io repo overview:** https://entire.io/gh/Nehal390/cli
+- **GitHub submission branch (final code lives here, not `main` — `main` is
+  protected on this fork):** https://github.com/Nehal390/cli/tree/submission
 - Initial architecture checkpoint — commit `23ebd205d`: architecture, CLI-based
   adapter, analysis layer tests (11 passing)
 - Working end-to-end checkpoint — commit `343c42475`: working adapter, REST API,
@@ -116,8 +122,9 @@ for the live API.
   throughout
 
 ## Known limitations and next steps
-- Single repository at a time (adapter takes a repo path, not yet exposed as a
-  UI switcher across multiple repos).
+- Repo switching exists as a UI field (validates the path before connecting),
+  but is process-local, not persisted multi-repo state — one active connection
+  at a time, not a saved list of repos.
 - Analysis is based on session metadata/prompts, not deep code-semantic
   understanding — a deliberate choice to avoid hallucinated confidence.
 - No dedicated visual Timeline page yet (the underlying data is available via
