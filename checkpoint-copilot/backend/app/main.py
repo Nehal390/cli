@@ -19,6 +19,7 @@ async def lifespan(app: FastAPI):
     reader = CliCheckpointReader(repo_path)
     # Store in app state so routes can access it
     app.state.reader = reader
+    app.state.repo_path = str(reader.repo_path)
     yield
     # Cleanup on shutdown (if needed)
 

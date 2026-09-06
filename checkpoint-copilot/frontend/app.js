@@ -2,6 +2,7 @@ const state = {
   apiBase: localStorage.getItem("checkpointCopilotApiBase") || defaultApiBase(),
   dashboard: null,
   checkpoints: [],
+  handoffs: {},
   selectedSessionId: null,
   statusFilter: "all",
   riskFilter: "all",
@@ -9,6 +10,8 @@ const state = {
 
 const elements = {
   apiBase: document.querySelector("#apiBase"),
+  repoPath: document.querySelector("#repoPath"),
+  connectRepo: document.querySelector("#connectRepo"),
   refresh: document.querySelector("#refresh"),
   status: document.querySelector("#status"),
   statusFilter: document.querySelector("#statusFilter"),
@@ -28,6 +31,9 @@ const elements = {
   handoffSummary: document.querySelector("#handoffSummary"),
   blockers: document.querySelector("#blockers"),
   suggestions: document.querySelector("#suggestions"),
+  generateHandoff: document.querySelector("#generateHandoff"),
+  copyHandoff: document.querySelector("#copyHandoff"),
+  handoffOutput: document.querySelector("#handoffOutput"),
   checkpointCount: document.querySelector("#checkpointCount"),
   fileCount: document.querySelector("#fileCount"),
   todoCount: document.querySelector("#todoCount"),
@@ -36,6 +42,7 @@ const elements = {
 };
 
 elements.apiBase.value = state.apiBase;
+elements.connectRepo.addEventListener("click", connectRepo);
 elements.refresh.addEventListener("click", loadDashboard);
 elements.apiBase.addEventListener("change", () => {
   state.apiBase = normalizeApiBase(elements.apiBase.value);
@@ -51,6 +58,8 @@ elements.riskFilter.addEventListener("change", () => {
   state.riskFilter = elements.riskFilter.value;
   renderSessions();
 });
+elements.generateHandoff.addEventListener("click", generateSelectedHandoff);
+elements.copyHandoff.addEventListener("click", copySelectedHandoff);
 
 loadDashboard();
 
@@ -73,6 +82,9 @@ async function loadDashboard() {
       healthResult.status === "fulfilled" && healthResult.value.repo_path
         ? ` from ${healthResult.value.repo_path}`
         : "";
+    if (healthResult.status === "fulfilled" && healthResult.value.repo_path) {
+      elements.repoPath.value = healthResult.value.repo_path;
+    }
     setStatus(`Connected${repoPath}`);
 
     const sessions = state.dashboard.sessions || [];
@@ -92,10 +104,45 @@ async function loadDashboard() {
   }
 }
 
-async function fetchJson(path) {
-  const response = await fetch(`${state.apiBase}${path}`);
+async function connectRepo() {
+  const repoPath = elements.repoPath.value.trim();
+  if (!repoPath) {
+    setStatus("Enter a repo path before connecting.", true);
+    return;
+  }
+
+  elements.connectRepo.disabled = true;
+  elements.connectRepo.textContent = "Connecting...";
+
+  try {
+    const health = await fetchJson("/api/repo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repo_path: repoPath }),
+    });
+    elements.repoPath.value = health.repo_path;
+    state.selectedSessionId = null;
+    state.handoffs = {};
+    await loadDashboard();
+  } catch (error) {
+    setStatus(`Could not connect repo: ${error.message || error}`, true);
+  } finally {
+    elements.connectRepo.disabled = false;
+    elements.connectRepo.textContent = "Connect";
+  }
+}
+
+async function fetchJson(path, options = {}) {
+  const response = await fetch(`${state.apiBase}${path}`, options);
   if (!response.ok) {
-    throw new Error(`${path} returned ${response.status}`);
+    let detail = "";
+    try {
+      const body = await response.json();
+      detail = body.detail ? `: ${body.detail}` : "";
+    } catch {
+      detail = "";
+    }
+    throw new Error(`${path} returned ${response.status}${detail}`);
   }
   return response.json();
 }
@@ -181,6 +228,7 @@ function renderDetail() {
 
   renderList(elements.blockers, session.handoff_blockers, "No blockers detected.");
   renderList(elements.suggestions, session.handoff_suggestions, "No suggestions.");
+  renderGeneratedHandoff(session);
 
   elements.checkpointCount.textContent = `${session.checkpoint_count} checkpoint(s)`;
   elements.fileCount.textContent = `${session.files_changed.length} file(s)`;
@@ -190,8 +238,58 @@ function renderDetail() {
   renderCheckpointList(session);
 }
 
+async function generateSelectedHandoff() {
+  const session = selectedSession();
+  if (!session) {
+    return;
+  }
+
+  elements.generateHandoff.disabled = true;
+  elements.generateHandoff.textContent = "Generating...";
+
+  try {
+    const handoff = await fetchJson(`/api/handoff/${encodeURIComponent(session.session_id)}`, {
+      method: "POST",
+    });
+    state.handoffs[session.session_id] = formatGeneratedHandoff(handoff);
+    renderGeneratedHandoff(session);
+  } catch (error) {
+    state.handoffs[session.session_id] = `Could not generate handoff: ${error.message || error}`;
+    renderGeneratedHandoff(session);
+  } finally {
+    elements.generateHandoff.disabled = false;
+    elements.generateHandoff.textContent = "Generate Handoff";
+  }
+}
+
+async function copySelectedHandoff() {
+  const session = selectedSession();
+  const text = session ? state.handoffs[session.session_id] : "";
+  if (!text) {
+    return;
+  }
+
+  await navigator.clipboard.writeText(text);
+  elements.copyHandoff.textContent = "Copied";
+  setTimeout(() => {
+    elements.copyHandoff.textContent = "Copy";
+  }, 1200);
+}
+
+function renderGeneratedHandoff(session) {
+  const text = state.handoffs[session.session_id] || "";
+  elements.handoffOutput.textContent = text;
+  elements.handoffOutput.classList.toggle("hidden", !text);
+  elements.copyHandoff.classList.toggle("hidden", !text);
+}
+
+function formatGeneratedHandoff(handoff) {
+  return `${handoff.handoff_summary}\n\n--- Resume Prompt ---\n\n${handoff.resume_prompt}`;
+}
+
 function renderCheckpointList(session) {
   elements.checkpointList.textContent = "";
+  elements.checkpointList.classList.remove("timeline");
 
   const checkpoints = state.checkpoints.filter((checkpoint) => checkpoint.session_id === session.session_id);
   if (!checkpoints.length) {
@@ -203,17 +301,20 @@ function renderCheckpointList(session) {
     return;
   }
 
+  elements.checkpointList.classList.add("timeline");
   checkpoints.forEach((checkpoint) => {
     const item = document.createElement("article");
-    item.className = "checkpoint";
+    item.className = "checkpoint timeline-item";
 
     const title = document.createElement("h4");
     title.textContent = checkpoint.message || "No checkpoint message.";
     const meta = document.createElement("span");
     meta.className = "checkpoint-meta";
-    meta.textContent = `${compactId(checkpoint.id)} · ${formatDate(checkpoint.timestamp)}`;
+    meta.textContent = formatDate(checkpoint.timestamp);
+    const commit = document.createElement("p");
+    commit.textContent = compactId(checkpoint.id);
 
-    item.append(title, meta);
+    item.append(meta, title, commit);
     elements.checkpointList.append(item);
   });
 }

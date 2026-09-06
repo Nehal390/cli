@@ -18,6 +18,11 @@
             <span>API</span>
             <input id="apiBase" type="url" inputmode="url" autocomplete="off" />
           </label>
+          <label class="api-field repo-field">
+            <span>Repo</span>
+            <input id="repoPath" type="text" autocomplete="off" />
+          </label>
+          <button id="connectRepo" class="secondary" type="button">Connect</button>
           <button id="refresh" type="button">Refresh</button>
         </div>
       </header>
@@ -102,6 +107,17 @@
                   <ul id="suggestions"></ul>
                 </div>
               </div>
+            </section>
+
+            <section>
+              <div class="section-heading">
+                <h3>Generated Handoff</h3>
+                <div class="handoff-actions">
+                  <button id="generateHandoff" type="button">Generate Handoff</button>
+                  <button id="copyHandoff" class="secondary hidden" type="button">Copy</button>
+                </div>
+              </div>
+              <pre id="handoffOutput" class="handoff-output hidden"></pre>
             </section>
 
             <section>
