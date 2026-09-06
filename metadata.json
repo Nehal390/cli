@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "01M1TPQN8CEQXAJYR97BB0M493",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "PRE_CURVEBALL.md",
+    "checkpoint-copilot/backend/app/analysis/handoff_generator.py",
+    "checkpoint-copilot/backend/app/api/routes/health.py",
+    "checkpoint-copilot/backend/app/api/routes/sessions.py",
+    "checkpoint-copilot/backend/app/main.py",
+    "checkpoint-copilot/frontend/app.js",
+    "checkpoint-copilot/frontend/index.html",
+    "checkpoint-copilot/frontend/styles.css"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}

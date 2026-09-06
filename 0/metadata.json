@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "01M1TPQN8CEQXAJYR97BB0M493",
+  "session_id": "01a07535-940f-7ae3-bf52-38f7bdb55148",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-06T06:33:16.68005Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "PRE_CURVEBALL.md",
+    "checkpoint-copilot/backend/app/analysis/handoff_generator.py",
+    "checkpoint-copilot/backend/app/api/routes/health.py",
+    "checkpoint-copilot/backend/app/api/routes/sessions.py",
+    "checkpoint-copilot/backend/app/main.py",
+    "checkpoint-copilot/frontend/app.js",
+    "checkpoint-copilot/frontend/index.html",
+    "checkpoint-copilot/frontend/styles.css"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.5",
+  "turn_id": "1f8b52ffe115",
+  "checkpoint_transcript_start": 248,
+  "transcript_lines_at_start": 248,
+  "compact_transcript_start": 33,
+  "initial_attribution": {
+    "calculated_at": "2026-09-06T06:33:16.654229Z",
+    "agent_lines": 675,
+    "agent_removed": 115,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 675,
+    "total_lines_changed": 790,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
