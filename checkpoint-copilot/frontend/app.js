@@ -2,31 +2,50 @@ const state = {
   apiBase: localStorage.getItem("checkpointCopilotApiBase") || defaultApiBase(),
   dashboard: null,
   checkpoints: [],
+  selectedSessionId: null,
+  statusFilter: "all",
   riskFilter: "all",
 };
 
 const elements = {
   apiBase: document.querySelector("#apiBase"),
-  refreshButton: document.querySelector("#refreshButton"),
+  refresh: document.querySelector("#refresh"),
+  status: document.querySelector("#status"),
+  statusFilter: document.querySelector("#statusFilter"),
   riskFilter: document.querySelector("#riskFilter"),
-  statusDot: document.querySelector("#statusDot"),
-  connectionStatus: document.querySelector("#connectionStatus"),
-  repoPath: document.querySelector("#repoPath"),
-  metricsGrid: document.querySelector("#metricsGrid"),
+  totalSessions: document.querySelector("#totalSessions"),
+  activeSessions: document.querySelector("#activeSessions"),
+  readySessions: document.querySelector("#readySessions"),
+  needsReview: document.querySelector("#needsReview"),
   sessionList: document.querySelector("#sessionList"),
+  emptyState: document.querySelector("#emptyState"),
+  sessionDetail: document.querySelector("#sessionDetail"),
+  sessionMeta: document.querySelector("#sessionMeta"),
+  sessionTitle: document.querySelector("#sessionTitle"),
+  riskBadge: document.querySelector("#riskBadge"),
+  riskMeter: document.querySelector("#riskMeter"),
+  intentMeter: document.querySelector("#intentMeter"),
+  handoffSummary: document.querySelector("#handoffSummary"),
+  blockers: document.querySelector("#blockers"),
+  suggestions: document.querySelector("#suggestions"),
+  checkpointCount: document.querySelector("#checkpointCount"),
+  fileCount: document.querySelector("#fileCount"),
+  todoCount: document.querySelector("#todoCount"),
+  intentSummary: document.querySelector("#intentSummary"),
   checkpointList: document.querySelector("#checkpointList"),
-  metricTemplate: document.querySelector("#metricTemplate"),
-  sessionTemplate: document.querySelector("#sessionTemplate"),
-  checkpointTemplate: document.querySelector("#checkpointTemplate"),
 };
 
 elements.apiBase.value = state.apiBase;
-elements.refreshButton.addEventListener("click", loadDashboard);
+elements.refresh.addEventListener("click", loadDashboard);
 elements.apiBase.addEventListener("change", () => {
   state.apiBase = normalizeApiBase(elements.apiBase.value);
   elements.apiBase.value = state.apiBase;
   localStorage.setItem("checkpointCopilotApiBase", state.apiBase);
   loadDashboard();
+});
+elements.statusFilter.addEventListener("change", () => {
+  state.statusFilter = elements.statusFilter.value;
+  renderSessions();
 });
 elements.riskFilter.addEventListener("change", () => {
   state.riskFilter = elements.riskFilter.value;
@@ -36,32 +55,40 @@ elements.riskFilter.addEventListener("change", () => {
 loadDashboard();
 
 async function loadDashboard() {
-  setStatus("loading", "Checking API", "");
-  elements.refreshButton.disabled = true;
+  setStatus("Loading dashboard...");
+  elements.refresh.disabled = true;
 
   try {
-    const [health, dashboard, checkpoints] = await Promise.all([
+    const dashboard = await fetchJson("/api/dashboard");
+    state.dashboard = dashboard;
+
+    const [healthResult, checkpointsResult] = await Promise.allSettled([
       fetchJson("/api/health"),
-      fetchJson("/api/dashboard"),
       fetchJson("/api/checkpoints"),
     ]);
 
-    state.dashboard = dashboard;
-    state.checkpoints = checkpoints;
+    state.checkpoints = checkpointsResult.status === "fulfilled" ? checkpointsResult.value : [];
 
-    setStatus(
-      "ok",
-      health.status === "ok" ? "Connected" : "API responded",
-      health.repo_path || "",
-    );
+    const repoPath =
+      healthResult.status === "fulfilled" && healthResult.value.repo_path
+        ? ` from ${healthResult.value.repo_path}`
+        : "";
+    setStatus(`Connected${repoPath}`);
+
+    const sessions = state.dashboard.sessions || [];
+    if (!sessions.some((session) => session.session_id === state.selectedSessionId)) {
+      state.selectedSessionId = sessions[0]?.session_id || null;
+    }
+
     render();
   } catch (error) {
     state.dashboard = null;
     state.checkpoints = [];
-    setStatus("error", "API unavailable", String(error.message || error));
+    state.selectedSessionId = null;
+    setStatus(`Could not load /api/dashboard: ${error.message || error}`, true);
     render();
   } finally {
-    elements.refreshButton.disabled = false;
+    elements.refresh.disabled = false;
   }
 }
 
@@ -76,139 +103,168 @@ async function fetchJson(path) {
 function render() {
   renderMetrics();
   renderSessions();
-  renderCheckpoints();
+  renderDetail();
 }
 
 function renderMetrics() {
-  elements.metricsGrid.textContent = "";
-
-  if (!state.dashboard) {
-    renderMetric("Total sessions", "-");
-    renderMetric("Active", "-");
-    renderMetric("Ready", "-");
-    renderMetric("Needs review", "-");
-    renderMetric("Checkpoints", "-");
-    return;
-  }
-
-  renderMetric("Total sessions", state.dashboard.total_sessions);
-  renderMetric("Active", state.dashboard.active_sessions);
-  renderMetric("Ready", state.dashboard.ready_for_handoff);
-  renderMetric("Needs review", state.dashboard.needs_review);
-  renderMetric("Checkpoints", state.checkpoints.length);
-}
-
-function renderMetric(label, value) {
-  const item = elements.metricTemplate.content.cloneNode(true);
-  item.querySelector(".metric-label").textContent = label;
-  item.querySelector(".metric-value").textContent = value;
-  elements.metricsGrid.append(item);
+  const dashboard = state.dashboard;
+  setText(elements.totalSessions, dashboard?.total_sessions ?? 0);
+  setText(elements.activeSessions, dashboard?.active_sessions ?? 0);
+  setText(elements.readySessions, dashboard?.ready_for_handoff ?? 0);
+  setText(elements.needsReview, dashboard?.needs_review ?? 0);
 }
 
 function renderSessions() {
   elements.sessionList.textContent = "";
 
-  const sessions = state.dashboard?.sessions || [];
-  const filtered = sessions.filter(
-    (session) => state.riskFilter === "all" || session.risk_level === state.riskFilter,
-  );
-
+  const sessions = filteredSessions();
   if (!state.dashboard) {
-    renderMessage(elements.sessionList, "error-state", "Start the FastAPI backend on port 8000 to load sessions.");
+    elements.sessionList.append(message("Start the FastAPI backend on port 8000 to load sessions."));
     return;
   }
 
-  if (!filtered.length) {
-    renderMessage(elements.sessionList, "empty-state", "No sessions match this filter.");
+  if (!sessions.length) {
+    elements.sessionList.append(message("No sessions match the selected filters."));
     return;
   }
 
-  filtered.forEach((session) => {
-    const item = elements.sessionTemplate.content.cloneNode(true);
-    const title = item.querySelector("h3");
-    const badge = item.querySelector(".badge");
-    const description = item.querySelector(".session-description");
-    const facts = item.querySelector(".session-facts");
-    const analysis = item.querySelector(".analysis-row");
-
-    title.textContent = compactId(session.session_id);
-    badge.textContent = session.status;
-    badge.classList.add(session.status);
-    description.textContent = session.description || session.first_prompt || "No session prompt captured.";
-
-    appendFact(facts, "Risk", `${session.risk_level} (${formatScore(session.risk_score)})`, session.risk_level);
-    appendFact(facts, "Alignment", formatScore(session.intent_alignment));
-    appendFact(facts, "Checkpoints", session.checkpoint_count);
-    appendFact(facts, "Files", session.files_changed.length);
-
-    appendPill(analysis, session.handoff_summary);
-    if (session.handoff_blockers.length) {
-      appendPill(analysis, `Blockers: ${session.handoff_blockers.slice(0, 2).join(", ")}`);
-    }
-    if (session.unfinished_work.length) {
-      appendPill(analysis, session.unfinished_work.slice(0, 2).join(", "));
+  sessions.forEach((session) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "session-button";
+    if (session.session_id === state.selectedSessionId) {
+      button.classList.add("selected");
     }
 
-    elements.sessionList.append(item);
+    const row = document.createElement("div");
+    row.className = "session-row";
+    const title = document.createElement("span");
+    title.className = "session-title";
+    title.textContent = session.description || session.first_prompt || compactId(session.session_id);
+    const badge = document.createElement("span");
+    badge.className = `badge risk-${session.risk_level}`;
+    badge.textContent = session.risk_level;
+    row.append(title, badge);
+
+    const subtitle = document.createElement("div");
+    subtitle.className = "session-subtitle";
+    subtitle.textContent = `${session.status} · ${session.checkpoint_count} checkpoint(s) · ${session.agent_type || "unknown agent"}`;
+
+    button.append(row, subtitle);
+    button.addEventListener("click", () => {
+      state.selectedSessionId = session.session_id;
+      renderSessions();
+      renderDetail();
+    });
+
+    elements.sessionList.append(button);
   });
 }
 
-function renderCheckpoints() {
+function renderDetail() {
+  const session = selectedSession();
+
+  elements.emptyState.classList.toggle("hidden", Boolean(session));
+  elements.sessionDetail.classList.toggle("hidden", !session);
+
+  if (!session) {
+    return;
+  }
+
+  elements.sessionMeta.textContent = `${session.status} · ${session.agent_type || "unknown agent"} · ${formatDate(session.start_time)}`;
+  elements.sessionTitle.textContent = session.description || session.first_prompt || compactId(session.session_id);
+  elements.riskBadge.className = `badge risk-${session.risk_level}`;
+  elements.riskBadge.textContent = session.risk_level;
+  elements.riskMeter.value = clampScore(session.risk_score);
+  elements.intentMeter.value = clampScore(session.intent_alignment);
+  elements.handoffSummary.textContent = session.handoff_summary || "No handoff summary available.";
+
+  renderList(elements.blockers, session.handoff_blockers, "No blockers detected.");
+  renderList(elements.suggestions, session.handoff_suggestions, "No suggestions.");
+
+  elements.checkpointCount.textContent = `${session.checkpoint_count} checkpoint(s)`;
+  elements.fileCount.textContent = `${session.files_changed.length} file(s)`;
+  elements.todoCount.textContent = `${session.todos_count} TODO(s)`;
+  elements.intentSummary.textContent = session.intent_summary || "No intent summary available.";
+
+  renderCheckpointList(session);
+}
+
+function renderCheckpointList(session) {
   elements.checkpointList.textContent = "";
 
-  if (!state.dashboard) {
-    renderMessage(elements.checkpointList, "error-state", "Checkpoint data will appear when the API is reachable.");
+  const checkpoints = state.checkpoints.filter((checkpoint) => checkpoint.session_id === session.session_id);
+  if (!checkpoints.length) {
+    const text =
+      session.checkpoint_count > 0
+        ? "Checkpoint summary is available, but detailed checkpoint rows were not returned for this session."
+        : "No checkpoints recorded for this session.";
+    elements.checkpointList.append(message(text));
     return;
   }
 
-  if (!state.checkpoints.length) {
-    renderMessage(elements.checkpointList, "empty-state", "No committed checkpoints returned.");
-    return;
-  }
+  checkpoints.forEach((checkpoint) => {
+    const item = document.createElement("article");
+    item.className = "checkpoint";
 
-  state.checkpoints.slice(0, 12).forEach((checkpoint) => {
-    const item = elements.checkpointTemplate.content.cloneNode(true);
-    item.querySelector("h3").textContent = compactId(checkpoint.id);
-    item.querySelector("p").textContent = checkpoint.message || "No checkpoint message.";
-    item.querySelector("span").textContent = formatDate(checkpoint.timestamp);
+    const title = document.createElement("h4");
+    title.textContent = checkpoint.message || "No checkpoint message.";
+    const meta = document.createElement("span");
+    meta.className = "checkpoint-meta";
+    meta.textContent = `${compactId(checkpoint.id)} · ${formatDate(checkpoint.timestamp)}`;
+
+    item.append(title, meta);
     elements.checkpointList.append(item);
   });
 }
 
-function appendFact(container, label, value, tone) {
-  const wrapper = document.createElement("div");
-  const term = document.createElement("dt");
-  const detail = document.createElement("dd");
-  term.textContent = label;
-  detail.textContent = value;
-  if (tone) {
-    detail.className = tone;
-  }
-  wrapper.append(term, detail);
-  container.append(wrapper);
+function filteredSessions() {
+  const sessions = state.dashboard?.sessions || [];
+  return sessions.filter((session) => {
+    const statusMatches = state.statusFilter === "all" || session.status === state.statusFilter;
+    const riskMatches = state.riskFilter === "all" || session.risk_level === state.riskFilter;
+    return statusMatches && riskMatches;
+  });
 }
 
-function appendPill(container, value) {
-  if (!value) {
-    return;
-  }
-  const pill = document.createElement("span");
-  pill.className = "analysis-pill";
-  pill.textContent = value;
-  container.append(pill);
+function selectedSession() {
+  const sessions = state.dashboard?.sessions || [];
+  return sessions.find((session) => session.session_id === state.selectedSessionId) || null;
 }
 
-function renderMessage(container, className, message) {
+function renderList(container, items, emptyText) {
+  container.textContent = "";
+  const values = items?.length ? items : [emptyText];
+  values.forEach((value) => {
+    const item = document.createElement("li");
+    item.textContent = value;
+    container.append(item);
+  });
+}
+
+function message(text) {
   const node = document.createElement("p");
-  node.className = className;
-  node.textContent = message;
-  container.append(node);
+  node.className = "summary-text";
+  node.textContent = text;
+  return node;
 }
 
-function setStatus(kind, message, repoPath) {
-  elements.statusDot.className = `status-dot ${kind === "ok" || kind === "error" ? kind : ""}`;
-  elements.connectionStatus.textContent = message;
-  elements.repoPath.textContent = repoPath;
+function setStatus(text, isError = false) {
+  elements.status.textContent = text;
+  elements.status.classList.toggle("error", isError);
+}
+
+function setText(element, value) {
+  element.textContent = String(value);
+}
+
+function normalizeApiBase(value) {
+  return (value || defaultApiBase()).replace(/\/+$/, "");
+}
+
+function defaultApiBase() {
+  const hostname = window.location.hostname || "localhost";
+  return `${window.location.protocol}//${hostname}:8000`;
 }
 
 function compactId(value) {
@@ -221,29 +277,20 @@ function compactId(value) {
   return `${value.slice(0, 8)}...${value.slice(-4)}`;
 }
 
-function normalizeApiBase(value) {
-  return (value || "http://localhost:8000").replace(/\/+$/, "");
-}
-
-function defaultApiBase() {
-  const hostname = window.location.hostname || "localhost";
-  return `${window.location.protocol}//${hostname}:8000`;
-}
-
-function formatScore(value) {
-  if (typeof value !== "number") {
-    return "-";
+function clampScore(value) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return 0;
   }
-  return `${Math.round(value * 100)}%`;
+  return Math.max(0, Math.min(1, value));
 }
 
 function formatDate(value) {
   if (!value) {
-    return "";
+    return "unknown time";
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "";
+    return "unknown time";
   }
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
